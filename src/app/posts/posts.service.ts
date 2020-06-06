@@ -4,6 +4,7 @@ import { Subject } from "rxjs";
 import { map } from "rxjs/operators";
 
 import { Post } from "./post.model";
+import { ThrowStmt } from "@angular/compiler";
 
 @Injectable({ providedIn: "root" })
 export class PostsService {
@@ -37,8 +38,7 @@ export class PostsService {
     return this.postsUpdated.asObservable();
   }
 
-  addPost(title: string, content: string) {
-    const post: Post = { id: null, title: title, content: content };
+  addPost(post: Post) {
     this.http
       .post<{ message: string, postId: string }>("http://localhost:3000/api/posts", post)
       .subscribe(responseData => {
@@ -58,4 +58,20 @@ export class PostsService {
         this.postsUpdated.next([...this.posts]);
       });
   }
+
+  getPost(id: string) {
+    return this.http.get<{post: any, message: string}>("http://localhost:3000/api/posts/"+id);
+  }
+
+  updatePost(post: Post) {
+    this.http.put<{ message: string}>("http://localhost:3000/api/posts/"+post.id, post).subscribe(responseData => {
+        console.log(responseData.message);
+        const updatedPosts = [...this.posts];
+        const oldPostIndex = updatedPosts.findIndex(p => p.id === post.id);
+        updatedPosts[oldPostIndex] = post;
+        this.posts = updatedPosts;
+        this.postsUpdated.next([...this.posts]);
+      });
+  }
+
 }
