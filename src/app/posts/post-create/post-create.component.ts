@@ -1,9 +1,10 @@
 import { Component, OnInit } from "@angular/core";
-import { NgForm } from "@angular/forms";
+import { FormGroup, FormControl, Validators } from "@angular/forms";
 
 import { PostsService } from "../posts.service";
 import { ActivatedRoute, ParamMap, Router } from "@angular/router";
 import { Post } from "../post.model";
+import { mimeType } from "./mime-type.validator";
 
 @Component({
   selector: "app-post-create",
@@ -15,8 +16,16 @@ export class PostCreateComponent implements OnInit {
   private postId: string = null;
   post: Post;
   isLoading: boolean = false;
+  form: FormGroup;
+  imageSelected: boolean = false;
+  imageUrl: string;
 
   ngOnInit() {
+    this.form = new FormGroup({
+      title: new FormControl(null, {validators: [Validators.required, Validators.minLength(3)]}),
+      content: new FormControl(null, {validators: [Validators.required]}),
+      image: new FormControl(null, {validators: Validators.required, asyncValidators: [mimeType]})
+    });
     this.isLoading = true;
     this.route.paramMap.subscribe((paramMap: ParamMap) => {
       if (paramMap.has('postId')) {
@@ -25,7 +34,12 @@ export class PostCreateComponent implements OnInit {
         this.postsService.getPost(this.postId).subscribe((response) => {
           console.log(response.message);
           if (response.post) {
+            this.imageSelected = true;
             this.post = {id: response.post._id, title: response.post.title, content: response.post.content};
+            this.form.setValue({
+              title: this.post.title,
+              content: this.post.content
+            });
           }
           this.isLoading = false;
         });
@@ -37,24 +51,38 @@ export class PostCreateComponent implements OnInit {
     });
   }
 
+  onImagePicked(event: Event) {
+    const file = (event.target as HTMLInputElement).files[0];
+    this.form.patchValue({
+      image: file
+    });
+    this.form.get('image').updateValueAndValidity();
+    this.imageSelected = true;
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      this.imageUrl = fileReader.result as string;
+    };
+    fileReader.readAsDataURL(file);
+  }
+
   constructor(public postsService: PostsService, private route: ActivatedRoute, public router: Router) {}
 
-  onAddPost(form: NgForm) {
-    if (form.invalid) {
+  onAddPost() {
+    if (this.form.invalid) {
       return;
     }
     const post = {
       id: this.postId,
-      title: form.value.title,
-      content: form.value.content
+      title: this.form.value.title,
+      content: this.form.value.content
     }
     this.isLoading = true;
     if (this.mode === 'create') {
       this.postsService.addPost(post);
     } else {
       this.postsService.updatePost(post);
+      this.router.navigate(["/"]);
     }
-    form.resetForm();
-    this.router.navigate(["/"]);
+    this.form.reset();
   }
 }
