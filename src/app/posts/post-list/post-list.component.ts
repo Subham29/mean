@@ -3,6 +3,7 @@ import { Subscription } from 'rxjs';
 
 import { Post } from "../post.model";
 import { PostsService } from "../posts.service";
+import { PageEvent } from "@angular/material";
 
 @Component({
   selector: "app-post-list",
@@ -13,17 +14,32 @@ export class PostListComponent implements OnInit, OnDestroy {
   posts: Post[] = [];
   private postsSub: Subscription;
   isLoading = false;
+  totalPosts = 0;
+  pageOptions = [1, 2, 5, 10, 20, 50, 100];
+  pageSize = 5;
+  pageIndex = 1;
 
   constructor(public postsService: PostsService) {}
 
   ngOnInit() {
+    this.fetchPosts();
+  }
+
+  fetchPosts() {
     this.isLoading = true;
-    this.postsService.getPosts();
+    this.postsService.getPosts(this.pageIndex, this.pageSize);
     this.postsSub = this.postsService.getPostUpdateListener()
-      .subscribe((posts: Post[]) => {
+      .subscribe((postData) => {
+        this.posts = postData.posts;
+        this.totalPosts = postData.maxPosts;
         this.isLoading = false;
-        this.posts = posts;
       });
+  }
+
+  onPageChanged(event: PageEvent) {
+    this.pageIndex = event.pageIndex + 1;
+    this.pageSize = event.pageSize;
+    this.fetchPosts();
   }
 
   ngOnDestroy() {
@@ -31,6 +47,9 @@ export class PostListComponent implements OnInit, OnDestroy {
   }
 
   onDelete(id: string) {
-    this.postsService.deletePost(id);
+    this.postsService.deletePost(id).subscribe(responseData => {
+      console.log(responseData.message);
+      this.postsService.getPosts(this.pageIndex, this.pageSize);
+    });;
   }
 }

@@ -10,3 +10,23 @@
 mat-spinner {
   margin: auto;
 }
+
+a {
+  text-decoration: none;
+  color: black;
+}
+
+.post-img {
+  width: 60%;
+  height: 50%;
+}
+
+.post-img img {
+  box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+  width: 120px;
+  height: 120px;
+}
+
+mat-paginator {
+  margin-top: 20px;
+}

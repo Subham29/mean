@@ -14,7 +14,7 @@ import { mimeType } from "./mime-type.validator";
 export class PostCreateComponent implements OnInit {
   mode: string = 'create';
   private postId: string = null;
-  post: Post;
+  post: any;
   isLoading: boolean = false;
   form: FormGroup;
   imageSelected: boolean = false;
@@ -22,11 +22,10 @@ export class PostCreateComponent implements OnInit {
 
   ngOnInit() {
     this.form = new FormGroup({
-      title: new FormControl(null, {validators: [Validators.required, Validators.minLength(3)]}),
-      content: new FormControl(null, {validators: [Validators.required]}),
+      title: new FormControl(null, {validators: [Validators.required, Validators.minLength(3)], updateOn:'blur'}),
+      content: new FormControl(null, {validators: [Validators.required], updateOn:'blur'}),
       image: new FormControl(null, {validators: Validators.required, asyncValidators: [mimeType]})
     });
-    this.isLoading = true;
     this.route.paramMap.subscribe((paramMap: ParamMap) => {
       if (paramMap.has('postId')) {
         this.mode = 'edit';
@@ -35,24 +34,34 @@ export class PostCreateComponent implements OnInit {
           console.log(response.message);
           if (response.post) {
             this.imageSelected = true;
-            this.post = {id: response.post._id, title: response.post.title, content: response.post.content};
+            this.post = {id: response.post._id, title: response.post.title, content: response.post.content, imagePath: response.post.imagePath};
             this.form.setValue({
               title: this.post.title,
-              content: this.post.content
+              content: this.post.content,
+              image: this.post.imagePath
             });
+            this.imageUrl = this.post.imagePath;
           }
-          this.isLoading = false;
         });
       } else {
         this.postId = null;
         this.mode = 'create';
         this.isLoading = false;
+        this.imageSelected = false;
+        this.imageUrl = "";
       }
     });
   }
 
   onImagePicked(event: Event) {
     const file = (event.target as HTMLInputElement).files[0];
+    if(file === undefined) {
+      this.imageSelected = false;
+      this.form.patchValue({
+        image: null
+      });
+      return;
+    }
     this.form.patchValue({
       image: file
     });
@@ -65,23 +74,26 @@ export class PostCreateComponent implements OnInit {
     fileReader.readAsDataURL(file);
   }
 
-  constructor(public postsService: PostsService, private route: ActivatedRoute, public router: Router) {}
+  constructor(public postsService: PostsService, private route: ActivatedRoute) {}
 
   onAddPost() {
     if (this.form.invalid) {
       return;
     }
-    const post = {
-      id: this.postId,
-      title: this.form.value.title,
-      content: this.form.value.content
-    }
+    // let loop_var = 0;
+    // const intervalId = setInterval(() => {
+    //   if (loop_var === 100) {
+    //     clearInterval(intervalId);
+    //     this.form.reset();
+    //   }
+    //   this.postsService.addPost(this.form.value.title+" "+loop_var, this.form.value.content, this.form.value.image);
+    //   loop_var += 1;
+    // }, 1000);
     this.isLoading = true;
     if (this.mode === 'create') {
-      this.postsService.addPost(post);
+      this.postsService.addPost(this.form.value.title, this.form.value.content, this.form.value.image);
     } else {
-      this.postsService.updatePost(post);
-      this.router.navigate(["/"]);
+      this.postsService.updatePost(this.postId, this.form.value.title, this.form.value.content, this.form.value.image);
     }
     this.form.reset();
   }

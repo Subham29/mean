@@ -22,19 +22,24 @@ const storage = multer.diskStorage({
   filename: (req, file, callback) => {
     const name = file.originalname.toLowerCase().split(' ').join("-");
     const extension = MIME_TYPE[file.mimetype];
-    callback(null, name + '-' + Date.now() + '-' + '.' + extension);
+    callback(null, name + '-' + Date.now() + '.' + extension);
   }
 });
 
-router.post("", multer(storage).single("image"), (req, res, next) => {
+router.post("", multer({storage: storage}).single("image"), (req, res, next) => {
+  const url = req.protocol + "://" + req.get("host");
   const post = new Post({
     title: req.body.title,
-    content: req.body.content
+    content: req.body.content,
+    imagePath: url + "/images/" +req.file.filename
   });
   post.save().then(createdPost => {
     res.status(201).json({
       message: 'Post added successfully',
-      postId: createdPost._id
+      post: {
+        ...createdPost,
+        id: createdPost._id
+      }
     });
   }).catch(() => {
     console.log('Error Occured');
@@ -42,10 +47,21 @@ router.post("", multer(storage).single("image"), (req, res, next) => {
 });
 
 router.get("", (req, res, next) => {
-  const posts = Post.find().then(documents => {
+  const page = +req.query.page;
+  const pageLimit = +req.query.pageLimit;
+  const postQuery = Post.find();
+  let fetchedPosts;
+  if (page && pageLimit) {
+    postQuery.skip(pageLimit * (page - 1)).limit(pageLimit);
+  }
+  postQuery.then(documents => {
+    fetchedPosts = documents;
+    return Post.count();
+  }).then(totalPosts => {
     res.status(200).json({
       message: "Posts fetched successfully!",
-      posts: documents
+      posts: fetchedPosts,
+      maxPosts: totalPosts
     });
   });
 });
@@ -58,12 +74,22 @@ router.delete("/:id", (req, res, next) => {
   });
 });
 
-router.put("/:id", (req, res, next) => {
+router.put("/:id", multer({storage: storage}).single("image"), (req, res, next) => {
+  let imagePath = "";
+  if (req.file) {
+    const url = req.protocol + "://" + req.get("host");
+    imagePath = url + "/images/" +req.file.filename;
+  } else {
+    imagePath = req.body.imagePath;
+  }
   const post = new Post({
     _id: req.body.id,
     title: req.body.title,
-    content: req.body.content
+    content: req.body.content,
+    imagePath: imagePath
   });
+  console.log(post);
+
   Post.updateOne({_id: req.params.id}, post).then((result) => {
     res.status(200).json({
       message: 'Post Updated'

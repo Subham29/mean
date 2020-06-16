@@ -5,32 +5,35 @@ import { map } from "rxjs/operators";
 
 import { Post } from "./post.model";
 import { ThrowStmt } from "@angular/compiler";
+import { Router } from "@angular/router";
 
 @Injectable({ providedIn: "root" })
 export class PostsService {
   private posts: Post[] = [];
-  private postsUpdated = new Subject<Post[]>();
+  private postsUpdated = new Subject<{ posts: Post[], maxPosts: number}>();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, public router: Router) {}
 
-  getPosts() {
+  getPosts(page: number, pageLimit: number) {
+    const queryParams = `?page=${page}&pageLimit=${pageLimit}`;
     this.http
-      .get<{ message: string; posts: any }>(
-        "http://localhost:3000/api/posts"
+      .get<{message: string, posts: any, maxPosts: number}>(
+        "http://localhost:3000/api/posts" + queryParams
       )
       .pipe(map((postData) => {
-        return postData.posts.map((post) => {
+        return { posts: postData.posts.map((post) => {
           return {
             title: post.title,
             content: post.content,
-            id: post._id
-          }
-        });
+            id: post._id,
+            imagePath: post.imagePath
+          };
+        }), maxPosts: postData.maxPosts};
       }))
-      .subscribe(posts => {
+      .subscribe(postData => {
         console.log("Posts fetched successfully");
-        this.posts = posts;
-        this.postsUpdated.next([...this.posts]);
+        this.posts = postData.posts;
+        this.postsUpdated.next({posts: [...this.posts], maxPosts: postData.maxPosts});
       });
   }
 
@@ -38,39 +41,44 @@ export class PostsService {
     return this.postsUpdated.asObservable();
   }
 
-  addPost(post: Post) {
+  addPost(title: string, content: string, image: File) {
+    const postData = new FormData();
+    postData.append('title', title);
+    postData.append('content', content);
+    postData.append('image', image, title);
     this.http
-      .post<{ message: string, postId: string }>("http://localhost:3000/api/posts", post)
+      .post<{ message: string, post: Post }>("http://localhost:3000/api/posts", postData)
       .subscribe(responseData => {
-        console.log(responseData.message+" with id: "+responseData.postId);
-        post.id = responseData.postId;
-        this.posts.push(post);
-        this.postsUpdated.next([...this.posts]);
-      });
+        this.router.navigate(["/"]);
+      })
   }
 
   deletePost(id: string) {
-    this.http.delete<{ message: string }>("http://localhost:3000/api/posts/"+id)
-      .subscribe(responseData => {
-        console.log(responseData.message);
-        const updatedPosts = this.posts.filter(post => post.id !== id);
-        this.posts = updatedPosts;
-        this.postsUpdated.next([...this.posts]);
-      });
+    return this.http.delete<{ message: string }>("http://localhost:3000/api/posts/"+id);
   }
 
   getPost(id: string) {
     return this.http.get<{post: any, message: string}>("http://localhost:3000/api/posts/"+id);
   }
 
-  updatePost(post: Post) {
-    this.http.put<{ message: string}>("http://localhost:3000/api/posts/"+post.id, post).subscribe(responseData => {
-        console.log(responseData.message);
-        const updatedPosts = [...this.posts];
-        const oldPostIndex = updatedPosts.findIndex(p => p.id === post.id);
-        updatedPosts[oldPostIndex] = post;
-        this.posts = updatedPosts;
-        this.postsUpdated.next([...this.posts]);
+  updatePost(id: string, title: string, content: string, image: string | File) {
+    let postData: FormData | Post;
+    if (typeof(image) === 'string') {
+      postData = {
+        title: title,
+        content: content,
+        id: id,
+        imagePath: image
+      };
+    } else {
+      postData = new FormData();
+      postData.append("id", id);
+      postData.append("title", title);
+      postData.append("content", content);
+      postData.append("image", image, title);
+    }
+    this.http.put<{ message: string}>("http://localhost:3000/api/posts/"+id, postData).subscribe(responseData => {
+        this.router.navigate(["/"]);
       });
   }
 

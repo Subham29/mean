@@ -7,7 +7,7 @@
     </mat-form-field>
     <mat-form-field>
       <textarea matInput rows="4" name="content" formControlName="content" placeholder="Post Content"></textarea>
-      <mat-error *ngIf="form.get('content').invalid">Please enter a post title.</mat-error>
+      <mat-error *ngIf="form.get('content').invalid">Please enter content.</mat-error>
     </mat-form-field>
     <div>
       <button mat-stroked-button type="button" (click)="filePicker.click()">Choose File</button>
