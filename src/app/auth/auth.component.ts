@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AppConstants } from '../app.constants';
 import { FormGroup, FormControl, Validators } from "@angular/forms";
+import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-auth',
@@ -13,10 +14,10 @@ export class AuthComponent implements OnInit {
   form: FormGroup;
   mode: string;
 
-  constructor() { }
+  constructor(private authService: AuthService) { }
 
   ngOnInit() {
-    this.mode = AppConstants.LOGIN;
+    this.mode = AppConstants.SIGNUP;
     this.form = new FormGroup({
       email: new FormControl(null, {validators: [Validators.email, Validators.required]}),
       password: new FormControl(null, {validators: [Validators.required]})
@@ -25,11 +26,22 @@ export class AuthComponent implements OnInit {
 
   handleLoginAndSignup() {
     if (this.mode === AppConstants.LOGIN) {
-      console.log(this.mode);
-
+      this.authService.login(this.form.value.email, this.form.value.password).subscribe(response => {
+        console.log(response);
+        // if (response.hasOwnProperty("error")) {
+        //   console.log("Sign Up Filed "+ response.error);
+        // } else {
+        //   console.log(response.message + "  Result: "+ JSON.stringify(response.result));
+        // }
+      });
     } else {
-      console.log(this.mode);
-
+      this.authService.signUp(this.form.value.email, this.form.value.password).subscribe(response => {
+        if (response.hasOwnProperty("error")) {
+          console.log("Sign Up Filed "+ response.error);
+        } else {
+          console.log(response.message + "  Result: "+ JSON.stringify(response.result));
+        }
+      });
     }
   }
 

@@ -6,8 +6,9 @@ const path = require("path");
 const app = express();
 
 const postRoutes = require('./routes/posts');
+const userRoutes = require('./routes/users');
 
-mongoose.connect('mongodb+srv://subhampatel29:vF5MxtHOpDDTmZo9@bonddata-wojmx.mongodb.net/test?retryWrites=true&w=majority')
+mongoose.connect('mongodb+srv://subhampatel29:vF5MxtHOpDDTmZo9@bonddata-wojmx.mongodb.net/test?retryWrites=true&w=majority', {useNewUrlParser: true})
   .then(() => {
     console.log('Connection successful');
   }).catch(() => {
@@ -34,5 +35,6 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/posts', postRoutes);
+app.use('/api/users', userRoutes);
 
 module.exports = app;
