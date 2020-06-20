@@ -25,24 +25,13 @@ export class AuthComponent implements OnInit {
   }
 
   handleLoginAndSignup() {
+    this.isLoading = true;
     if (this.mode === AppConstants.LOGIN) {
-      this.authService.login(this.form.value.email, this.form.value.password).subscribe(response => {
-        console.log(response);
-        // if (response.hasOwnProperty("error")) {
-        //   console.log("Sign Up Filed "+ response.error);
-        // } else {
-        //   console.log(response.message + "  Result: "+ JSON.stringify(response.result));
-        // }
-      });
+      this.authService.login(this.form.value.email, this.form.value.password);
     } else {
-      this.authService.signUp(this.form.value.email, this.form.value.password).subscribe(response => {
-        if (response.hasOwnProperty("error")) {
-          console.log("Sign Up Filed "+ response.error);
-        } else {
-          console.log(response.message + "  Result: "+ JSON.stringify(response.result));
-        }
-      });
+      this.authService.signUp(this.form.value.email, this.form.value.password);
     }
+    this.form.reset();
   }
 
   onModeChanged() {
