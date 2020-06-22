@@ -34,7 +34,7 @@ export class PostCreateComponent implements OnInit {
           console.log(response.message);
           if (response.post) {
             this.imageSelected = true;
-            this.post = {id: response.post._id, title: response.post.title, content: response.post.content, imagePath: response.post.imagePath};
+            this.post = {id: response.post._id, title: response.post.title, content: response.post.content, imagePath: response.post.imagePath, creator: response.post.creator};
             this.form.setValue({
               title: this.post.title,
               content: this.post.content,

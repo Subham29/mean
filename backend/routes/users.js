@@ -44,7 +44,8 @@ router.post("/login", (req, res, next) => {
       const token = jwt.sign({email: user.email, userId: user._id}, "you_cant_fucking_hack_this_asshole", {expiresIn: '1h'});
       res.status(200).json({
         token: token,
-        expiresIn: 3600
+        expiresIn: 3600,
+        userId: user._id
       });
     });
   }).catch(error => {
