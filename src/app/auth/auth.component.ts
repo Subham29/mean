@@ -1,22 +1,31 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AppConstants } from '../app.constants';
 import { FormGroup, FormControl, Validators } from "@angular/forms";
 import { AuthService } from './auth.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-auth',
   templateUrl: './auth.component.html',
   styleUrls: ['./auth.component.css']
 })
-export class AuthComponent implements OnInit {
+export class AuthComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = false;
   form: FormGroup;
   mode: string;
+  authStatusSub: Subscription;
 
   constructor(private authService: AuthService) { }
 
+  ngOnDestroy(): void {
+
+  }
+
   ngOnInit() {
+    this.authStatusSub = this.authService.getAuthenticationStatus().subscribe((response) => {
+      this.isLoading = false;
+    });
     this.mode = AppConstants.SIGNUP;
     this.form = new FormGroup({
       email: new FormControl(null, {validators: [Validators.email, Validators.required]}),

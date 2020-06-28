@@ -27,12 +27,13 @@ const storage = multer.diskStorage({
   }
 });
 
-router.post("", multer({storage: storage}).single("image"), (req, res, next) => {
+router.post("", checkAuth, multer({storage: storage}).single("image"), (req, res, next) => {
   const url = req.protocol + "://" + req.get("host");
   const post = new Post({
     title: req.body.title,
     content: req.body.content,
-    imagePath: url + "/images/" +req.file.filename
+    imagePath: url + "/images/" +req.file.filename,
+    creator: req.userData.userId
   });
   post.save().then(createdPost => {
     res.status(201).json({
@@ -43,7 +44,9 @@ router.post("", multer({storage: storage}).single("image"), (req, res, next) => 
       }
     });
   }).catch(() => {
-    console.log('Error Occured');
+    res.status(500).json({
+      message: 'Error occured while adding post'
+    });
   })
 });
 
@@ -64,14 +67,24 @@ router.get("", (req, res, next) => {
       posts: fetchedPosts,
       maxPosts: totalPosts
     });
+  }).catch(() => {
+    res.status(500).json({
+      message: 'Error occured while fetching posts'
+    });
   });
 });
 
 router.delete("/:id", checkAuth, (req, res, next) => {
-  Post.deleteOne({_id: req.params.id}).then((response) => {
-    res.status(200).json({
-      message: 'Post deleted'
-    });
+  Post.deleteOne({_id: req.params.id, creator: req.userData.userId}).then((response) => {
+    if (response.n > 0) {
+      res.status(200).json({
+        message: 'Post deleted'
+      });
+    } else {
+      res.status(401).json({
+        message: 'Not authorised to delete.'
+      });
+    }
   });
 });
 
@@ -87,14 +100,21 @@ router.put("/:id",checkAuth, multer({storage: storage}).single("image"), (req, r
     _id: req.body.id,
     title: req.body.title,
     content: req.body.content,
-    imagePath: imagePath
+    imagePath: imagePath,
+    creator: req.userData.userId
   });
   console.log(post);
 
-  Post.updateOne({_id: req.params.id}, post).then((result) => {
-    res.status(200).json({
-      message: 'Post Updated'
-    });
+  Post.updateOne({_id: req.params.id, creator: req.userData.userId}, post).then((result) => {
+    if (result.nModified > 0) {
+      res.status(200).json({
+        message: 'Post Updated'
+      });
+    } else {
+      res.status(401).json({
+        message: 'Not authorised to edit.'
+      });
+    }
   });
 });
 

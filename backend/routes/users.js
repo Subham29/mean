@@ -18,13 +18,19 @@ router.post("/signup", (req, res, next) => {
           result: result
         });
       }).catch(error => {
-        res.status(500).json({
-          message: error,
-          result: null
-        });
+        if(error.errors.email) {
+          res.status(500).json({
+            message: 'Account already exists! Try logging in!',
+            result: null
+          });
+        }
       });
     }
-  );
+  ).catch(() => {
+    res.status(500).json({
+      message: 'Account already exists!'
+    });
+  });
 });
 
 router.post("/login", (req, res, next) => {
@@ -38,18 +44,23 @@ router.post("/login", (req, res, next) => {
     encryptor.compare(req.body.password, user.password).then(isSame => {
       if (!isSame) {
         return res.status(401).json({
-          message: "Login Failed"
+          message: "Password does not match!"
         });
       }
       const token = jwt.sign({email: user.email, userId: user._id}, "you_cant_fucking_hack_this_asshole", {expiresIn: '1h'});
       res.status(200).json({
+        message: "Login Successful",
         token: token,
-        expiresIn: 3600
+        expiresIn: 3600,
+        userId: user._id
       });
     });
   }).catch(error => {
     return res.status(401).json({
-      message: "Login Failed"
+      message: "Login Failed",
+      token: null,
+      expiresIn: null,
+      userId: null
     });
   });
 });
